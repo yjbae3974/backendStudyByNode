@@ -2,5 +2,12 @@
     "[javascript]" : {
         "editor.formatOnSave" : true,
         "editor.defaultFormatter" : "esbenp.prettier-vscode"
+    },
+    "[json]": {
+        "editor.defaultFormattor": "esbenp.prettier-vscode",
+        "editor.tabSize": 2,
+        "editor.formatOnSave": true,
+        "editor.insertSpaces": true,
+        "editor.detectIndentation": true
     }
 }

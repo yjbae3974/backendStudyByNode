@@ -7,95 +7,74 @@
  * -로컬 파일을 데이터베이스로 활용할 예정(json)
  */
 
+// const { reject } = require('core-js/fn/promise')
 const http = require('http')
 
-// called jsdoc!!
-/**
- * Represents the post
- * @typedef Post
- * @property {string} id
- * @property {string} title
- * @property {string} content
- */
-
-/** @type {Post[]} */
-const posts = [
-    {
-        id: 'my_first_post',
-        title: 'My first post',
-        content: 'Hello!'
-    },
-    {
-        id: 'my_second_post',
-        title: 'My second post',
-        content: 'Hihhi'
-    },
-]
 /**
  * Post
  * Get /posts
  * GET /posts/:id
  * POST / posts
  */
+const { routes } = require('./api')
+/**
+ * res: response, 즉 응답
+ * req: request, 즉 요청
+ */
+const server = http.createServer((req, res) => {
+  async function main() {
+    const route = routes.find(
+      (_route) =>
+        req.url &&
+        req.method &&
+        _route.url.test(req.url) &&
+        _route.method === req.method
+    )
 
-const server = http.createServer((req,res)=>{
+    if (!req.url || !route) {
+      res.statusCode = 404
+      res.end('Not found')
+      return
+    }
 
-    const POSTS_ID_REGEX = /^\/posts\/([a-zA-Z0-9-_]+)$/
-    const regexresult = (req.url && POSTS_ID_REGEX.exec(req.url)) || undefined
-    if(req.url === '/posts' && req.method === "GET"){
-        const result = {
-            posts: posts.map((post)=>({
-            id: post.id,
-            title: post.title
-        })),
-        totalCount: posts.length,}
-        res.statusCode = 200
-        res.setHeader('Content-Type', 'application/json; charset=utf-8')
-        res.end(JSON.stringify(result))
+    const regexResult = route.url.exec(req.url)
+
+    if (!regexResult) {
+      res.statusCode = 404
+      res.end('Not found')
+      return
     }
-    else if(regexresult){ // GET /posts/:id
-        
-            const postId = regexresult[1]
-            const findPost = posts.find((_post) => _post.id === postId)
-            if(findPost){
-                res.statusCode = 200
-                res.setHeader('Content-Type', 'application/json')
-                res.end(JSON.stringify(findPost))
-            }else{
-                res.statusCode = 404
-                res.end('status not found')
-            }
-    }
-    else if (req.url === '/posts' && req.method === 'POST'){
+    /** @type {Object.<string,*> | undefined} */
+    const reqbody = (req.headers['content-type'] === 'application/json' && 
+    await new Promise((resolve, reject)=>{
         req.setEncoding('utf-8')
-        req.on('data',(data)=>{
-            /** 
-             * @typedef CreatePostBody
-             * @property {string} title
-             * @property {string} content
-             */
-            /** @type {CreatePostBody} */
-            const resbody = JSON.parse(data)
-            console.log(resbody)
-            posts.push({
-                id: resbody.title.toLowerCase().replace(/\s/g, '_'),
-                title: resbody.title,
-                content: resbody.content
-            })
+        req.on('data',data=>{
+            try{
+                resolve(JSON.parse(data))
+            }
+            catch{
+                reject(new Error('Ill-formed json'))
+            }
         })
-        res.setHeader('Content-Type', 'application/json')
-        res.end(JSON.stringify(posts))
-    }
-    else{
-        res.statusCode = 404
-        res.end('Not found')
-    }
+    })) || undefined
 
+
+
+
+    const result = await route.callback(regexResult, reqbody)
+    res.statusCode = result.statusCode
+    if (typeof result.body === 'string') {
+      res.end(result.body)
+    } else {
+      res.setHeader('Content-type','application/json; utf-8')
+      res.end(JSON.stringify(result.body))
+    }
+  }
+  main()
 })
-
 
 const PORT = 4000
 
-server.listen(PORT, ()=>{
-    console.log('THe server is listening at ', PORT)
+server.listen(PORT, () => {
+  console.log('THe server is listening at ', PORT)
 })

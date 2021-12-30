@@ -8,6 +8,9 @@
     "build": "esbuild src/transpile.js --bundle --outfile=build/transpile.js --target=node12.4",
     "server": "nodemon server/main.js"
   },
+  "engines":{
+    "node": "17.3.0"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
